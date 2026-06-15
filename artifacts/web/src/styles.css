@@ -1,0 +1,311 @@
+@import "tailwindcss";
+
+/* ── Caseband design system (LP house style) ─────────────────────────────
+   Dark, clean, professional. Custom-CSS classes layered on top of Tailwind. */
+
+:root {
+  --bg: #0b0e14;
+  --bg2: #11151f;
+  --panel: #151a24;
+  --panel2: #1b2230;
+  --line: #232b3a;
+  --line2: #2e3850;
+
+  --ink: #f2f5fb;
+  --ink2: #c7cfde;
+  --ink3: #8b94a7;
+  --ink4: #5d6678;
+
+  --navy: #3b5bdb;
+  --navy2: #4c6ef5;
+  --green: #2f9e69;
+  --green2: #37b27a;
+  --amber: #d99a2b;
+  --red: #d05959;
+
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(76, 110, 245, 0.08), transparent 60%),
+    var(--bg);
+  color: var(--ink);
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter,
+    "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ── Cards ── */
+.card {
+  background: linear-gradient(180deg, var(--panel), var(--bg2));
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+.card + .card {
+  margin-top: 16px;
+}
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line2);
+  background: var(--panel2);
+  color: var(--ink);
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 550;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.05s ease,
+    opacity 0.15s ease;
+}
+.btn:hover:not(:disabled) {
+  background: #222b3c;
+  border-color: #3a455c;
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: linear-gradient(180deg, var(--navy2), var(--navy));
+  border-color: transparent;
+  color: #fff;
+}
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #5b7bff, #3f5fe0);
+}
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 13px;
+}
+.btn-ghost {
+  background: transparent;
+  border-color: var(--line);
+}
+
+/* ── Badges ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--line2);
+  color: var(--ink2);
+  background: var(--panel2);
+}
+.badge-green {
+  background: rgba(47, 158, 105, 0.14);
+  border-color: rgba(55, 178, 122, 0.4);
+  color: #6fdca6;
+}
+.badge-navy {
+  background: rgba(59, 91, 219, 0.16);
+  border-color: rgba(76, 110, 245, 0.45);
+  color: #9db4ff;
+}
+.badge-amber {
+  background: rgba(217, 154, 43, 0.14);
+  border-color: rgba(217, 154, 43, 0.4);
+  color: #e7bd6b;
+}
+.badge-red {
+  background: rgba(208, 89, 89, 0.14);
+  border-color: rgba(208, 89, 89, 0.4);
+  color: #e89090;
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 20px;
+}
+.tab {
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 550;
+  color: var(--ink3);
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.15s ease;
+}
+.tab:hover {
+  color: var(--ink2);
+}
+.tab.active {
+  color: var(--ink);
+  border-bottom-color: var(--navy2);
+}
+
+/* ── Strips (inline notices) ── */
+.strip {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line2);
+  background: var(--panel2);
+  color: var(--ink2);
+  font-size: 13px;
+}
+.strip-info {
+  background: rgba(59, 91, 219, 0.1);
+  border-color: rgba(76, 110, 245, 0.35);
+  color: #aebfff;
+}
+.strip-error {
+  background: rgba(208, 89, 89, 0.1);
+  border-color: rgba(208, 89, 89, 0.4);
+  color: #f0a9a9;
+}
+.strip-ok {
+  background: rgba(47, 158, 105, 0.1);
+  border-color: rgba(55, 178, 122, 0.4);
+  color: #8fe0bb;
+}
+
+/* ── Inputs ── */
+.field {
+  display: block;
+  width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--line2);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.15s ease;
+}
+.field:focus {
+  outline: none;
+  border-color: var(--navy2);
+}
+.field::placeholder {
+  color: var(--ink4);
+}
+textarea.field {
+  resize: vertical;
+  min-height: 120px;
+  line-height: 1.55;
+}
+.label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink3);
+  margin-bottom: 6px;
+  letter-spacing: 0.02em;
+}
+
+/* ── Spinner ── */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Page header ── */
+.page-header {
+  margin-bottom: 24px;
+}
+.page-label {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--navy2);
+  margin-bottom: 6px;
+}
+.page-header h1 {
+  font-size: 26px;
+  font-weight: 680;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.subtitle {
+  color: var(--ink3);
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+/* ── Animations ── */
+.fade-up {
+  animation: fadeUp 0.35s ease both;
+}
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Small helpers ── */
+.muted {
+  color: var(--ink3);
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.stat .num {
+  font-size: 22px;
+  font-weight: 700;
+}
+.stat .lbl {
+  font-size: 12px;
+  color: var(--ink3);
+}

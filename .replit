@@ -1,0 +1,17 @@
+modules = ["python-3.11", "nodejs-20"]
+run = "bash start.sh"
+
+[env]
+PYTHONUNBUFFERED = "1"
+
+[deployment]
+run = ["bash", "start.sh"]
+deploymentTarget = "cloudrun"
+
+[[ports]]
+localPort = 8088
+externalPort = 80
+
+[[ports]]
+localPort = 8099
+externalPort = 3000

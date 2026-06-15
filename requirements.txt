@@ -1,0 +1,8 @@
+# Caseband Python orchestrator (the "brain") + API surface.
+# The orchestrator core is stdlib-only; these are for the HTTP API, the live
+# LLM agents, and the optional Supabase-backed store.
+fastapi>=0.117
+uvicorn[standard]>=0.30
+pydantic>=2.7
+openai>=1.82
+supabase>=2.10

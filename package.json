@@ -1,0 +1,12 @@
+{
+  "name": "caseband-workspace",
+  "private": true,
+  "version": "0.0.0",
+  "license": "MIT",
+  "scripts": {
+    "dev:orch": "python3 -m uvicorn services.api.app:app --port 8099 --app-dir .",
+    "dev:api": "pnpm --filter @caseband/api-server dev",
+    "dev:web": "pnpm --filter @caseband/web dev",
+    "typecheck": "pnpm -r --if-present run typecheck"
+  }
+}

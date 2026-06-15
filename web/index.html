@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Caseband</title>
+<style>
+  :root { --bg:#0f1117; --panel:#181b24; --line:#2a2f3a; --fg:#e6e8ee; --mut:#9aa3b2;
+          --acc:#6ea8fe; --ok:#4ade80; --bad:#f87171; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font:14px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  header { padding:18px 24px; border-bottom:1px solid var(--line); display:flex;
+           align-items:baseline; gap:12px; }
+  header h1 { font-size:18px; margin:0; letter-spacing:.3px; }
+  header span { color:var(--mut); font-size:12px; }
+  main { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding:16px 24px; max-width:1200px; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .panel h2 { font-size:13px; text-transform:uppercase; letter-spacing:.6px;
+              color:var(--mut); margin:0 0 10px; }
+  textarea, input { width:100%; background:#0d0f15; color:var(--fg);
+        border:1px solid var(--line); border-radius:7px; padding:8px; font:inherit; }
+  textarea { resize:vertical; min-height:90px; font-family:ui-monospace,Menlo,monospace; font-size:12px; }
+  button { background:var(--acc); color:#06122c; border:0; border-radius:7px;
+           padding:8px 14px; font-weight:600; cursor:pointer; margin-top:8px; }
+  button.ghost { background:transparent; color:var(--acc); border:1px solid var(--acc); }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  pre { background:#0d0f15; border:1px solid var(--line); border-radius:7px; padding:10px;
+        overflow:auto; max-height:280px; font-size:12px; color:#cdd3df; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px;
+          border:1px solid var(--line); color:var(--mut); }
+  .ok { color:var(--ok); border-color:var(--ok); }
+  .bad { color:var(--bad); border-color:var(--bad); }
+  label { font-size:12px; color:var(--mut); display:block; margin:8px 0 2px; }
+  .full { grid-column:1 / -1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Caseband</h1>
+  <span>source document → deployable, provably-solvable teaching case</span>
+</header>
+<main>
+  <section class="panel">
+    <h2>1 · Ingest</h2>
+    <textarea id="doc"></textarea>
+    <button onclick="ingest()">Detect &amp; extract</button>
+    <pre id="ingestOut">—</pre>
+  </section>
+
+  <section class="panel">
+    <h2>2 · Author (Loop A) &amp; Red-team (Loop B)</h2>
+    <label>Title</label><input id="title" value="Acme Corp: Marketing ROI" />
+    <div class="row" style="margin-top:10px">
+      <button onclick="author()">Author case</button>
+      <button class="ghost" id="rtBtn" onclick="redteam()" disabled>Prove solvable</button>
+    </div>
+    <pre id="authorOut">—</pre>
+  </section>
+
+  <section class="panel">
+    <h2>3 · Inspect</h2>
+    <div class="row">
+      <button class="ghost" onclick="getCase('faculty')" id="facBtn" disabled>Faculty view</button>
+      <button class="ghost" onclick="getCase('student')" id="stuBtn" disabled>Student view (redacted)</button>
+    </div>
+    <pre id="caseOut">—</pre>
+  </section>
+
+  <section class="panel">
+    <h2>4 · Play &amp; grade</h2>
+    <label>marketing_spend</label><input id="spend" value="60000" />
+    <button onclick="play()" id="playBtn" disabled>Submit as student</button>
+    <pre id="gradeOut">—</pre>
+  </section>
+
+  <section class="panel full">
+    <h2>5 · Faculty edit (re-validation gate)</h2>
+    <div class="row">
+      <label style="margin:0">New ROI target</label>
+      <input id="target" value="0.10" style="width:120px" />
+      <button onclick="edit(false)" id="editBtn" disabled>Preview + re-validate</button>
+    </div>
+    <pre id="editOut">—</pre>
+  </section>
+</main>
+
+<script>
+const API = location.origin;
+let caseId = null;
+const $ = id => document.getElementById(id);
+const show = (id, o) => $(id).textContent = typeof o === "string" ? o : JSON.stringify(o, null, 2);
+const MODEL = {
+  kind:"formula", kpi_key:"roi", pass_policy:"all",
+  target:{value:0.15, comparator:">=", units:"ratio"},
+  decision_variables:[{key:"marketing_spend", bounds:[50000,500000]}],
+  parameters:{gain:200000},
+  spec:{expr:"(gain - marketing_spend) / marketing_spend"}
+};
+$("doc").value = "ACME CORP FORM 10-K\nUNITED STATES SECURITIES AND EXCHANGE COMMISSION\n\nItem 7. Management's Discussion\nTotal revenue was $4,200 million for fiscal 2025.\nNet income of $560 million was reported.";
+
+async function call(method, path, body) {
+  const r = await fetch(API + path, {
+    method, headers:{"content-type":"application/json"},
+    body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.detail || r.statusText);
+  return j;
+}
+async function ingest() {
+  try { show("ingestOut", await call("POST","/ingest",{text:$("doc").value})); }
+  catch(e){ show("ingestOut","⚠ "+e.message); }
+}
+async function author() {
+  try {
+    const j = await call("POST","/cases",{ title:$("title").value,
+      objectives:[{key:"o1",text:"Diagnose the ROI shortfall"},
+                  {key:"o2",text:"Recommend a spend level"}], model:MODEL });
+    caseId = j.case_id;
+    show("authorOut", j);
+    ["rtBtn","facBtn","stuBtn","playBtn","editBtn"].forEach(b=>$(b).disabled=false);
+  } catch(e){ show("authorOut","⚠ "+e.message); }
+}
+async function redteam() {
+  try { show("authorOut", await call("POST",`/cases/${caseId}/redteam`)); }
+  catch(e){ show("authorOut","⚠ "+e.message); }
+}
+async function getCase(view) {
+  try { show("caseOut", await call("GET",`/cases/${caseId}?view=${view}`)); }
+  catch(e){ show("caseOut","⚠ "+e.message); }
+}
+async function play() {
+  try {
+    await call("POST","/runs",{case_id:caseId, student_id:"stu_1"}).then(async r=>{
+      const g = await call("POST",`/runs/${r.run_id}/submit`,
+        {assignment:{marketing_spend:Number($("spend").value)}, rubric_scores:{c_o1:2,c_o2:2}});
+      show("gradeOut", g);
+    });
+  } catch(e){ show("gradeOut","⚠ "+e.message); }
+}
+async function edit(apply) {
+  try {
+    show("editOut", await call("POST",`/cases/${caseId}/faculty/edit`,
+      {op:"set_outcome_target", field:"outcome_model", value:Number($("target").value), apply}));
+  } catch(e){ show("editOut","⚠ "+e.message); }
+}
+</script>
+</body>
+</html>
