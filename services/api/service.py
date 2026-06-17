@@ -34,11 +34,33 @@ from caseband.agents.interview_agent import AgenticInterviewer           # noqa:
 from caseband.agents.case_designer import CaseDesigner                   # noqa: E402
 from caseband.models.rich_case import RichCase                           # noqa: E402
 from caseband.runtime.staged_run import StagedRun, StagedPlayer, opening as rich_opening  # noqa: E402
+from caseband.runtime.interview import IntervieweeAgent   # noqa: E402
+from caseband import engines                               # noqa: E402
 from caseband.graph import ui_builder as graph_ui         # noqa: E402
 from caseband.tools import grader                         # noqa: E402
 from caseband.tools import backbone as backbone_tool      # noqa: E402
 
 _JOINABLE = {Room.ASSESSMENT.value, Room.DEPLOYED.value}
+
+
+def _rich_feedback(analysis_level: str, led: dict, key_insight: bool) -> str:
+    bits = []
+    if analysis_level == "met":
+        bits.append("Strong analysis — you identified the true cost driver.")
+    elif analysis_level == "partially met":
+        bits.append("Your analysis is on the way but didn't clearly land the real driver.")
+    elif analysis_level == "revisit":
+        bits.append("Revisit the allocation — you anchored on the obvious guess.")
+    if key_insight:
+        bits.append("Good investigation: your interviews surfaced the insight that "
+                    "explains the numbers.")
+    elif led.get("facts_uncovered", 0) == 0:
+        bits.append("You didn't interview anyone — the people in this case hold "
+                    "information the exhibits don't.")
+    if led.get("efficiency", 1.0) < 0.8:
+        bits.append("Try to investigate more deliberately — several questions didn't "
+                    "surface anything new.")
+    return " ".join(bits) or "Submitted."
 
 
 class ServiceError(Exception):
@@ -136,6 +158,47 @@ class CaseService:
         if run is None:
             raise ServiceError(f"no rich run {run_id!r}", 404)
         return StagedPlayer().advance(run, text or "")
+
+    def interview_persona(self, run_id: str, persona_key: str, question: str) -> dict:
+        """Student interviews a case persona. Gated facts unlock only when asked
+        well; the ledger tracks uncovering + the anti-stall efficiency score."""
+        run = self._staged.get(run_id)
+        if run is None:
+            raise ServiceError(f"no rich run {run_id!r}", 404)
+        persona = run.case.persona(persona_key)
+        if persona is None:
+            raise ServiceError(f"no persona {persona_key!r} in this case", 404)
+        bb = run.case.backbone.__dict__ if run.case.backbone else None
+        return IntervieweeAgent().ask(persona, question, run.ledger, backbone=bb)
+
+    def submit_rich(self, run_id: str) -> dict:
+        """Grade a played rich run: analysis (engine), investigation efficiency
+        (ledger), and whether the student uncovered the gated key insight. Returns
+        formative feedback now; numbers stay gated to professor finalize later."""
+        run = self._staged.get(run_id)
+        if run is None:
+            raise ServiceError(f"no rich run {run_id!r}", 404)
+        case = run.case
+        text = " ".join(r.get("text", "") for r in run.responses).lower()
+
+        analysis = {"score": None}
+        if case.backbone:
+            eng = engines.get_engine(case.meta.get("method_key", "activity_costing"))
+            analysis = eng.grade_analysis(case.backbone.__dict__, text)
+
+        led = run.ledger.summary()
+        # did they uncover a gated fact that points at the true driver?
+        true_driver = ((case.backbone.__dict__ if case.backbone else {})
+                       .get("answer_key", {}).get("true_driver", ""))
+        key_insight = any(f.get("ties_to") == true_driver for f in run.ledger.revealed_facts)
+
+        lvl = {2: "met", 1: "partially met", 0: "revisit", None: "n/a"}[analysis.get("score")]
+        return {
+            "released": False,
+            "analysis": {"level": lvl, "note": analysis.get("note")},
+            "investigation": {**led, "found_key_insight": key_insight},
+            "feedback": _rich_feedback(lvl, led, key_insight),
+        }
 
     @staticmethod
     def _rich_summary(case: RichCase) -> dict:

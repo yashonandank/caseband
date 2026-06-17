@@ -171,6 +171,7 @@ def render(case: RichCase) -> str:
     objectives = "".join(f"<li>{_esc(o)}</li>" for o in case.learning_objectives)
     exhibits = "".join(_exhibit_html(e) for e in case.exhibits)
     worksheet = _worksheet_html(case.backbone.__dict__) if case.backbone else ""
+    people = _people_html(case)
     stages = _stages_html(case)
     return f'''<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -187,9 +188,27 @@ def render(case: RichCase) -> str:
     <ul class="obj">{objectives}</ul>
   </header>
   <section class="card" aria-labelledby="ex-h"><h2 id="ex-h">Exhibits</h2>{exhibits}</section>
+  {people}
   {worksheet}
   {stages}
 </main></body></html>'''
+
+
+def _people_html(case: RichCase) -> str:
+    """Roster of interviewable characters — PUBLIC info only (never their knowledge).
+    The actual Q&A runs through POST /rich-runs/{id}/interview."""
+    if not case.personas:
+        return ""
+    cards = "".join(
+        f'<div class="person"><b>{_esc(p.name)}</b> '
+        f'<span class="muted">— {_esc(p.role)}</span>'
+        f'<p class="note">{_esc(p.public_bio)}</p>'
+        f'<button class="btn" data-persona="{_esc(p.key)}" disabled '
+        f'title="Interview runs through the app">Interview</button></div>'
+        for p in case.personas)
+    return (f'<section class="card" aria-labelledby="pp-h"><h2 id="pp-h">People you can '
+            f'interview</h2><p class="muted">They know things the exhibits don\'t — but '
+            f"ask deliberately; fishing without progress costs you.</p>{cards}</section>")
 
 
 def render_to_file(case: RichCase, case_id: str, web_root: str | None = None) -> dict:

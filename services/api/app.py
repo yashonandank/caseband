@@ -158,6 +158,21 @@ def advance_rich_run(run_id: str, req: AdvanceReq) -> dict[str, Any]:
     return _guard(svc.advance_rich_run, run_id, req.text)
 
 
+class InterviewPersonaReq(BaseModel):
+    persona_key: str
+    question: str = ""
+
+
+@app.post("/rich-runs/{run_id}/interview")
+def interview_persona(run_id: str, req: InterviewPersonaReq) -> dict[str, Any]:
+    return _guard(svc.interview_persona, run_id, req.persona_key, req.question)
+
+
+@app.post("/rich-runs/{run_id}/submit")
+def submit_rich(run_id: str) -> dict[str, Any]:
+    return _guard(svc.submit_rich, run_id)
+
+
 @app.post("/cases/{case_id}/redteam")
 def redteam(case_id: str) -> dict[str, Any]:
     return _guard(svc.redteam, case_id)

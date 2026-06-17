@@ -60,6 +60,32 @@ class Stage:
 
 
 @dataclass
+class Knowledge:
+    """A single thing a persona knows, and the rule for when they'll share it.
+    reveal: 'free' (says it readily) | 'if_asked:<topic>' (only if the question is
+    about <topic>) | 'if_pressed' (only after a follow-up) | 'never' (won't divulge
+    — e.g. the answer)."""
+    fact: str
+    reveal: str = "free"
+    topic: str = ""            # keyword(s) that unlock an if_asked fact
+    ties_to: str = ""          # objective/stage key this fact supports (for grading)
+    key: str = ""              # stable id so the ledger can dedupe
+
+
+@dataclass
+class Persona:
+    """An interviewable character the writer authored. The student can question
+    them to PULL information; gated facts unlock only when asked well."""
+    key: str
+    name: str
+    role: str
+    public_bio: str = ""
+    demeanor: str = ""
+    knowledge: list[Knowledge] = field(default_factory=list)
+    hidden_agenda: str = ""
+
+
+@dataclass
 class Backbone:
     """The deterministic analytical spine. Generic 'find the real driver' model:
     each activity has a visible/direct cost and consumes a share of an overhead
@@ -82,6 +108,7 @@ class RichCase:
     exhibits: list[Exhibit] = field(default_factory=list)
     stages: list[Stage] = field(default_factory=list)
     backbone: Backbone | None = None
+    personas: list[Persona] = field(default_factory=list)
     meta: dict = field(default_factory=dict)
 
     # ---- serialisation ------------------------------------------------------
@@ -98,11 +125,16 @@ class RichCase:
             s["rubric"] = [RubricCriterion(**c) for c in s.get("rubric", [])]
             stages.append(Stage(**s))
         backbone = Backbone(**d["backbone"]) if d.get("backbone") else None
+        personas = []
+        for p in d.get("personas", []):
+            p = dict(p)
+            p["knowledge"] = [Knowledge(**k) for k in p.get("knowledge", [])]
+            personas.append(Persona(**p))
         return RichCase(title=d["title"], company=company,
                         learning_objectives=d.get("learning_objectives", []),
                         teaching_note=d.get("teaching_note", ""),
                         exhibits=exhibits, stages=stages, backbone=backbone,
-                        meta=d.get("meta", {}))
+                        personas=personas, meta=d.get("meta", {}))
 
     # ---- convenience --------------------------------------------------------
     def exhibit(self, key: str) -> Exhibit | None:
@@ -110,3 +142,6 @@ class RichCase:
 
     def stage(self, key: str) -> Stage | None:
         return next((s for s in self.stages if s.key == key), None)
+
+    def persona(self, key: str) -> Persona | None:
+        return next((p for p in self.personas if p.key == key), None)

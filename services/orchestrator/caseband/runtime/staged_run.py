@@ -15,6 +15,7 @@ from typing import Any
 
 from ..models.rich_case import RichCase
 from ..tools import backbone as bb
+from .ledger import InformationLedger
 
 
 @dataclass
@@ -26,6 +27,7 @@ class StagedRun:
     stage_idx: int = 0
     responses: list[dict] = field(default_factory=list)   # [{stage_key, text}]
     status: str = "active"                                  # active -> complete
+    ledger: InformationLedger = field(default_factory=InformationLedger)
 
 
 def _exhibit_view(case: RichCase, key: str) -> dict | None:
@@ -50,6 +52,9 @@ def opening(case: RichCase) -> dict:
         "stage": _stage_view(s0),
         "exhibits": [e for e in ex if e],
         "stage_index": 0, "total_stages": len(case.stages),
+        # who the student can interview — PUBLIC info only, never their knowledge
+        "people": [{"key": p.key, "name": p.name, "role": p.role,
+                    "bio": p.public_bio} for p in case.personas],
     }
     # if the backbone is the analysis target of stage 1, hand the student the raw
     # (un-allocated) data table — they must do the allocation themselves.

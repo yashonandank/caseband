@@ -15,7 +15,7 @@ import json
 from typing import Any, Callable
 
 from ..models.rich_case import (
-    RichCase, Company, Exhibit, Stage, RubricCriterion, Backbone,
+    RichCase, Company, Exhibit, Stage, RubricCriterion, Backbone, Persona, Knowledge,
 )
 from ..tools import backbone as bb
 from .. import config
@@ -178,6 +178,45 @@ def example_case() -> RichCase:
             "direct cost) miss that transactional overhead on full-custom is the real "
             "driver. The case rewards doing the allocation and resisting the framing."),
         exhibits=exhibits, stages=stages, backbone=backbone,
+        personas=[
+            Persona(
+                key="dev", name="Dev Okafor", role="Lead finisher (22 years)",
+                public_bio="Runs the hand-finishing station; Maria's most trusted maker.",
+                demeanor="Proud, blunt, a little wary of 'efficiency consultants'.",
+                hidden_agenda="Worried automation talk means his job; will quit if pushed.",
+                knowledge=[
+                    Knowledge(key="dev_specs", reveal="if_asked",
+                              topic="rework|spec|specs|quality|mistake|error|custom|drawing",
+                              ties_to="order_processing",
+                              fact=("Most of our redo work on full-custom comes from the "
+                                    "hand-drawn client specs — they're ambiguous, so we "
+                                    "guess, build it wrong, and rebuild. It's not the "
+                                    "machines, it's the paperwork upstream.")),
+                    Knowledge(key="dev_cnc", reveal="free",
+                              fact=("The CNC line looks busy, sure, but it rarely sits "
+                                    "idle waiting on us. The hold-ups are upstream.")),
+                    Knowledge(key="dev_quit", reveal="if_pressed", ties_to="people",
+                              fact=("Honestly? If this 'AI' means you don't need me, "
+                                    "I've had calls from a shop in Marietta.")),
+                ]),
+            Persona(
+                key="cfo", name="Priya Nair", role="Fractional CFO",
+                public_bio="Part-time finance lead; built the current cost reports.",
+                demeanor="Confident, numbers-first, slightly defensive of her reports.",
+                hidden_agenda="Her reports emphasise direct cost; gently steers toward CNC.",
+                knowledge=[
+                    Knowledge(key="cfo_direct", reveal="free",
+                              fact=("On a direct-cost basis CNC machining is clearly our "
+                                    "biggest line — that's where I'd point the investment.")),
+                    Knowledge(key="cfo_overhead", reveal="if_asked",
+                              topic="overhead|allocation|indirect|support|abc|activity",
+                              ties_to="order_processing",
+                              fact=("We've never properly allocated the $1.2M overhead by "
+                                    "activity — it's spread as a flat rate. If you drove it "
+                                    "by transactions, the small-order activities would look "
+                                    "very different.")),
+                ]),
+        ],
         meta={"audience": "MBA", "method": "activity-based costing",
               "source": "fallback-example"},
     )
