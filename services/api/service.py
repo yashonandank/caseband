@@ -34,6 +34,7 @@ from caseband.agents.interview_agent import AgenticInterviewer           # noqa:
 from caseband.agents.case_designer import CaseDesigner                   # noqa: E402
 from caseband.models.rich_case import RichCase                           # noqa: E402
 from caseband.runtime.staged_run import StagedRun, StagedPlayer, opening as rich_opening  # noqa: E402
+from caseband.graph import ui_builder as graph_ui         # noqa: E402
 from caseband.tools import grader                         # noqa: E402
 from caseband.tools import backbone as backbone_tool      # noqa: E402
 
@@ -87,6 +88,25 @@ class CaseService:
         case_id = str(uuid.uuid4())
         self._rich[case_id] = case.to_dict()
         return {"case_id": case_id, **self._rich_summary(case)}
+
+    def author_graph(self, brief: dict, live: bool | None = None) -> dict:
+        """Run the LangGraph authoring pipeline: propose backbone -> validate (loop on
+        fail) -> write case -> leak-scan -> build interactive UI. Returns the case
+        summary, the live phase events, and the deployable UI url."""
+        from caseband.graph.authoring_graph import run_authoring
+        case_id = str(uuid.uuid4())
+        out = run_authoring(brief or {}, case_id, live=live)
+        if not out.get("case"):
+            raise ServiceError("authoring graph produced no case", 422)
+        self._rich[case_id] = out["case"]
+        case = RichCase.from_dict(out["case"])
+        return {"case_id": case_id, "ui_url": f"/case-ui/{case_id}",
+                "validation": out.get("validation"), "events": out.get("events", []),
+                **self._rich_summary(case)}
+
+    def get_case_ui(self, case_id: str) -> str:
+        """Render the interactive HTML case page (deployable student view)."""
+        return graph_ui.render(self._load_rich(case_id))
 
     def _load_rich(self, case_id: str) -> RichCase:
         d = self._rich.get(case_id)

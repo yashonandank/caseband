@@ -10,7 +10,7 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
 
 from .service import CaseService, ServiceError
@@ -126,6 +126,17 @@ def design_rich(req: DesignRichReq) -> dict[str, Any]:
 @app.get("/cases/rich/{case_id}")
 def get_rich_case(case_id: str, view: str = "faculty") -> dict[str, Any]:
     return _guard(svc.get_rich_case, case_id, view)
+
+
+@app.post("/cases/graph")
+def author_graph(req: DesignRichReq) -> dict[str, Any]:
+    """LangGraph authoring: interleaved propose->validate->write->leak->build-UI."""
+    return _guard(svc.author_graph, req.brief, req.live)
+
+
+@app.get("/case-ui/{case_id}", response_class=HTMLResponse)
+def case_ui(case_id: str) -> Any:
+    return HTMLResponse(_guard(svc.get_case_ui, case_id))
 
 
 class RichRunReq(BaseModel):

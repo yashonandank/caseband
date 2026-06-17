@@ -13,6 +13,8 @@ node_modules/
 dist/
 .vite/
 *.log
+# generated interactive case pages
+web/cases/
 # os
 .DS_Store
 **/.DS_Store
