@@ -102,6 +102,51 @@ def author(req: AuthorReq) -> dict[str, Any]:
                   model=req.model, document=req.document, live=req.live)
 
 
+# ---- rich case pipeline (agentic interview -> detailed staged case) ---------
+class InterviewRichReq(BaseModel):
+    state: dict[str, Any] | None = None
+    message: str = ""
+
+
+@app.post("/cases/interview-rich")
+def interview_rich(req: InterviewRichReq) -> dict[str, Any]:
+    return _guard(svc.interview_rich, req.state, req.message)
+
+
+class DesignRichReq(BaseModel):
+    brief: dict[str, Any] = Field(default_factory=dict)
+    live: bool | None = None
+
+
+@app.post("/cases/rich")
+def design_rich(req: DesignRichReq) -> dict[str, Any]:
+    return _guard(svc.design_rich, req.brief, req.live)
+
+
+@app.get("/cases/rich/{case_id}")
+def get_rich_case(case_id: str, view: str = "faculty") -> dict[str, Any]:
+    return _guard(svc.get_rich_case, case_id, view)
+
+
+class RichRunReq(BaseModel):
+    case_id: str
+    student_id: str
+
+
+@app.post("/rich-runs")
+def start_rich_run(req: RichRunReq) -> dict[str, Any]:
+    return _guard(svc.start_rich_run, req.case_id, req.student_id)
+
+
+class AdvanceReq(BaseModel):
+    text: str = ""
+
+
+@app.post("/rich-runs/{run_id}/advance")
+def advance_rich_run(run_id: str, req: AdvanceReq) -> dict[str, Any]:
+    return _guard(svc.advance_rich_run, run_id, req.text)
+
+
 @app.post("/cases/{case_id}/redteam")
 def redteam(case_id: str) -> dict[str, Any]:
     return _guard(svc.redteam, case_id)

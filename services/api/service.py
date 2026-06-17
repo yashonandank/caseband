@@ -30,7 +30,12 @@ from caseband.runtime.feedback import student_feedback, is_released  # noqa: E40
 from caseband.agents.professor_liaison import ProfessorLiaison, LLMProfessorLiaison  # noqa: E402
 from caseband.agents.sim_agent import SimAgent                          # noqa: E402
 from caseband.agents.interview import InterviewAgent                     # noqa: E402
+from caseband.agents.interview_agent import AgenticInterviewer           # noqa: E402
+from caseband.agents.case_designer import CaseDesigner                   # noqa: E402
+from caseband.models.rich_case import RichCase                           # noqa: E402
+from caseband.runtime.staged_run import StagedRun, StagedPlayer, opening as rich_opening  # noqa: E402
 from caseband.tools import grader                         # noqa: E402
+from caseband.tools import backbone as backbone_tool      # noqa: E402
 
 _JOINABLE = {Room.ASSESSMENT.value, Room.DEPLOYED.value}
 
@@ -46,6 +51,9 @@ class CaseService:
     def __init__(self, store=None) -> None:
         from .store import build_store
         self.store = store or build_store()
+        # RichCase pipeline (in-process for the local demo; survives within a run).
+        self._rich: dict[str, dict] = {}          # case_id -> RichCase.to_dict()
+        self._staged: dict[str, StagedRun] = {}   # run_id -> StagedRun
 
     def _conductor_for(self, pkg: CasePackage, room: str) -> Conductor:
         c = Conductor(LocalBus(), StateStore(), room=room)
@@ -63,6 +71,60 @@ class CaseService:
         if run is None:
             raise ServiceError(f"no run {run_id!r}", 404)
         return run
+
+    # ======================================================================
+    # Rich case pipeline: agentic interview -> detailed case -> staged play
+    # ======================================================================
+    def interview_rich(self, state: dict | None, message: str = "") -> dict:
+        """One turn of the AGENTIC authoring conversation. Round-trip `state`.
+        When `ready`, feed `brief` into design_rich()."""
+        agent = AgenticInterviewer()
+        return agent.start() if state is None else agent.step(state, message)
+
+    def design_rich(self, brief: dict, live: bool | None = None) -> dict:
+        """Generate a full RichCase from a brief and store it."""
+        case = CaseDesigner(live=live).design(brief or {})
+        case_id = str(uuid.uuid4())
+        self._rich[case_id] = case.to_dict()
+        return {"case_id": case_id, **self._rich_summary(case)}
+
+    def _load_rich(self, case_id: str) -> RichCase:
+        d = self._rich.get(case_id)
+        if d is None:
+            raise ServiceError(f"no rich case {case_id!r}", 404)
+        return RichCase.from_dict(d)
+
+    def get_rich_case(self, case_id: str, view: str = "faculty") -> dict:
+        case = self._load_rich(case_id)
+        if view == "student":
+            return rich_opening(case)            # opening view, answer hidden
+        d = case.to_dict()
+        if case.backbone:                        # faculty also sees the proof
+            d["backbone_check"] = backbone_tool.validate(case.backbone.__dict__).__dict__
+        return d
+
+    def start_rich_run(self, case_id: str, student_id: str) -> dict:
+        case = self._load_rich(case_id)
+        run_id = str(uuid.uuid4())
+        self._staged[run_id] = StagedRun(run_id=run_id, case_id=case_id,
+                                         student_id=student_id, case=case)
+        return {"run_id": run_id, "case_id": case_id, "status": "active",
+                "opening": rich_opening(case)}
+
+    def advance_rich_run(self, run_id: str, text: str) -> dict:
+        run = self._staged.get(run_id)
+        if run is None:
+            raise ServiceError(f"no rich run {run_id!r}", 404)
+        return StagedPlayer().advance(run, text or "")
+
+    @staticmethod
+    def _rich_summary(case: RichCase) -> dict:
+        return {"title": case.title, "company": case.company.name,
+                "stages": len(case.stages), "exhibits": len(case.exhibits),
+                "objectives": len(case.learning_objectives),
+                "solvable": bool(case.backbone and
+                                 backbone_tool.validate(case.backbone.__dict__).validated),
+                "source": case.meta.get("source")}
 
     # ---- ingestion ----------------------------------------------------------
     def ingest(self, text: str, filename: str | None = None) -> dict[str, Any]:
